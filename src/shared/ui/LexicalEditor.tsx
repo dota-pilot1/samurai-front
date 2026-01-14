@@ -18,6 +18,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { LexicalToolbar } from './LexicalToolbar';
+import { CodeMirrorNode } from './lexical/CodeMirrorNode';
 
 const theme = {
     ltr: 'ltr',
@@ -133,6 +134,7 @@ export default function LexicalEditor({ value, onChange, placeholder }: LexicalE
             CodeHighlightNode,
             AutoLinkNode,
             LinkNode,
+            CodeMirrorNode,
         ],
     };
 

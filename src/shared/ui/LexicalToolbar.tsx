@@ -32,9 +32,7 @@ import {
 import {
     $setBlocksType,
 } from '@lexical/selection';
-import {
-    $createCodeNode,
-} from '@lexical/code';
+import { $createCodeMirrorNode } from './lexical/CodeMirrorNode';
 import {
     Bold,
     Italic,
@@ -148,22 +146,14 @@ export function LexicalToolbar() {
         }
     };
 
-    const formatCode = () => {
-        if (blockType !== 'code') {
-            editor.update(() => {
-                const selection = $getSelection();
-                if ($isRangeSelection(selection)) {
-                    if (selection.isCollapsed()) {
-                        $setBlocksType(selection, () => $createCodeNode());
-                    } else {
-                        const textContent = selection.getTextContent();
-                        const codeNode = $createCodeNode();
-                        selection.insertNodes([codeNode]);
-                        selection.insertText(textContent);
-                    }
-                }
-            });
-        }
+    const insertCodeMirror = () => {
+        editor.update(() => {
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+                const codeMirrorNode = $createCodeMirrorNode('// 코드를 입력하세요', 'javascript');
+                selection.insertNodes([codeMirrorNode]);
+            }
+        });
     };
 
     return (
@@ -252,8 +242,8 @@ export function LexicalToolbar() {
 
             <div className="flex items-center gap-0.5">
                 <ToolbarButton
-                    onClick={formatCode}
-                    active={blockType === 'code'}
+                    onClick={insertCodeMirror}
+                    active={blockType === 'codemirror'}
                     icon={<Code2 size={16} />}
                     tooltip="Code Block"
                 />

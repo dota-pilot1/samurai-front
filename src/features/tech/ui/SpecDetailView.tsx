@@ -533,7 +533,9 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                                                 remarkPlugins={[remarkGfm, remarkBreaks]}
                                                 components={{
                                                     p({ children }) {
-                                                        return <p className="mb-3 last:mb-0 min-h-[1.5em]">{children}</p>;
+                                                        // 빈 문단이면 non-breaking space 렌더링
+                                                        const isEmpty = !children || (Array.isArray(children) && children.length === 0) || children === '';
+                                                        return <p className="mb-3 last:mb-0 min-h-[1.5em]">{isEmpty ? '\u00A0' : children}</p>;
                                                     },
                                                     code({ node, inline, className, children, ...props }: any) {
                                                         const match = /language-(\w+)/.exec(className || '');
@@ -554,7 +556,7 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                                                     }
                                                 }}
                                             >
-                                                {activeContent.content?.split('\n').map((line: string) => line || '&nbsp;').join('  \n')}
+                                                {activeContent.content}
                                             </ReactMarkdown>
                                         </div>
                                     </div>
