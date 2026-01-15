@@ -83,7 +83,6 @@ export default function CodeMirrorEditor({
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const lineCount = code.split('\n').length;
-    const calculatedHeight = Math.min(Math.max(lineCount * 20 + 20, 100), 400);
 
     useEffect(() => {
         if (!editorRef.current || isCollapsed) return;
@@ -110,15 +109,23 @@ export default function CodeMirrorEditor({
                 EditorView.editable.of(!readOnly),
                 EditorView.theme({
                     '&': {
-                        height: `${calculatedHeight}px`,
-                        fontSize: '13px',
+                        minHeight: '60px',
+                        maxHeight: '240px', // ~10 lines
+                        fontSize: '12px',
                     },
                     '.cm-scroller': {
                         overflow: 'auto',
-                        fontFamily: 'monospace',
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                     },
                     '.cm-content': {
-                        padding: '8px 0',
+                        padding: '4px 0',
+                    },
+                    '.cm-gutters': {
+                        fontSize: '10px',
+                        minWidth: '32px',
+                    },
+                    '.cm-lineNumbers .cm-gutterElement': {
+                        padding: '0 4px 0 8px',
                     },
                 }),
             ],
@@ -155,18 +162,18 @@ export default function CodeMirrorEditor({
 
     return (
         <div
-            className={`my-3 border rounded-lg overflow-hidden transition-all ${
-                isFocused ? 'ring-2 ring-blue-500 border-blue-500' : 'border-zinc-300'
+            className={`my-2 rounded-lg overflow-hidden transition-all shadow-sm ${
+                isFocused ? 'ring-1 ring-blue-500/50' : ''
             }`}
         >
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between px-2 py-1 bg-zinc-900">
                 <div className="flex items-center gap-2">
                     <select
                         value={language}
                         onChange={(e) => onLanguageChange(e.target.value)}
                         disabled={readOnly}
-                        className="text-xs bg-zinc-700 text-zinc-200 border border-zinc-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="text-[11px] bg-zinc-800 text-zinc-300 border-none rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500/50 cursor-pointer"
                     >
                         {LANGUAGES.map((lang) => (
                             <option key={lang.value} value={lang.value}>
@@ -174,29 +181,29 @@ export default function CodeMirrorEditor({
                             </option>
                         ))}
                     </select>
-                    <span className="text-xs text-zinc-400">{lineCount} lines</span>
+                    <span className="text-[10px] text-zinc-500">{lineCount}L</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center">
                     <button
                         type="button"
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="p-1 text-zinc-400 hover:text-zinc-200 transition-colors"
+                        className="p-0.5 text-zinc-500 hover:text-zinc-300 transition-colors"
                         title={isCollapsed ? '펼치기' : '접기'}
                     >
                         {isCollapsed ? (
-                            <ChevronDown className="w-4 h-4" />
+                            <ChevronDown className="w-3.5 h-3.5" />
                         ) : (
-                            <ChevronUp className="w-4 h-4" />
+                            <ChevronUp className="w-3.5 h-3.5" />
                         )}
                     </button>
                     {!readOnly && (
                         <button
                             type="button"
                             onClick={onRemove}
-                            className="p-1 text-zinc-400 hover:text-red-400 transition-colors"
+                            className="p-0.5 ml-0.5 text-zinc-500 hover:text-red-400 transition-colors"
                             title="삭제"
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>
@@ -207,7 +214,7 @@ export default function CodeMirrorEditor({
 
             {/* Collapsed Preview */}
             {isCollapsed && (
-                <div className="px-3 py-2 bg-zinc-900 text-zinc-400 text-xs font-mono truncate">
+                <div className="px-2 py-1 bg-zinc-900 text-zinc-500 text-[11px] font-mono truncate">
                     {code.split('\n')[0] || '(빈 코드)'}
                 </div>
             )}

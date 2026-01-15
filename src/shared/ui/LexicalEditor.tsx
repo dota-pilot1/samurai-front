@@ -18,12 +18,12 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { LexicalToolbar } from './LexicalToolbar';
-import { CodeMirrorNode } from './lexical/CodeMirrorNode';
+import { CodeMirrorNode, $createCodeMirrorNode } from './lexical/CodeMirrorNode';
 
 const theme = {
     ltr: 'ltr',
     rtl: 'rtl',
-    placeholder: 'text-zinc-400 font-medium absolute top-8 left-8 pointer-events-none',
+    placeholder: 'text-zinc-400 font-medium absolute top-5 left-5 pointer-events-none text-sm',
     paragraph: 'mb-2 relative font-medium text-sm leading-relaxed text-zinc-700 text-left',
     quote: 'border-l-4 border-zinc-200 pl-4 italic text-zinc-500 text-left',
     heading: {
@@ -49,20 +49,55 @@ const theme = {
     code: 'bg-zinc-100 px-1.5 py-0.5 rounded font-mono text-[13px] text-zinc-800',
 };
 
-// Custom parser: plain text with line breaks preserved
+// Custom parser: plain text with line breaks preserved, code blocks parsed
 function parseTextToNodes(text: string) {
     const root = $getRoot();
     root.clear();
 
-    // Split by newlines - each line becomes a paragraph
-    const lines = text.split('\n');
+    // Regex to match code blocks: ```language\ncode\n```
+    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match;
 
-    for (const line of lines) {
-        const paragraph = $createParagraphNode();
-        if (line.trim()) {
-            paragraph.append($createTextNode(line));
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+        // Add text before the code block
+        const textBefore = text.slice(lastIndex, match.index);
+        if (textBefore) {
+            const lines = textBefore.split('\n');
+            for (const line of lines) {
+                const paragraph = $createParagraphNode();
+                if (line.trim()) {
+                    paragraph.append($createTextNode(line));
+                }
+                root.append(paragraph);
+            }
         }
-        root.append(paragraph);
+
+        // Add the code block as CodeMirrorNode
+        const language = match[1] || 'javascript';
+        const code = match[2].replace(/\n$/, ''); // Remove trailing newline
+        const codeNode = $createCodeMirrorNode(code, language);
+        root.append(codeNode);
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text after last code block
+    const remainingText = text.slice(lastIndex);
+    if (remainingText) {
+        const lines = remainingText.split('\n');
+        for (const line of lines) {
+            const paragraph = $createParagraphNode();
+            if (line.trim()) {
+                paragraph.append($createTextNode(line));
+            }
+            root.append(paragraph);
+        }
+    }
+
+    // If no content was added, add empty paragraph
+    if (root.getChildrenSize() === 0) {
+        root.append($createParagraphNode());
     }
 }
 
@@ -140,18 +175,16 @@ export default function LexicalEditor({ value, onChange, placeholder }: LexicalE
 
     return (
         <LexicalComposer initialConfig={initialConfig}>
-            <div className="relative border-2 border-zinc-100 rounded-2xl bg-zinc-50 focus-within:border-blue-500 focus-within:bg-white transition-all flex flex-col min-h-[300px] overflow-hidden" dir="ltr">
-                <div className="flex-1 flex flex-col min-h-0 bg-white">
-                    <LexicalToolbar />
-                    <div className="flex-1 min-h-[300px] relative overflow-y-auto">
-                        <RichTextPlugin
-                            contentEditable={
-                                <ContentEditable className="min-h-full p-8 outline-none" />
-                            }
-                            placeholder={<div className={theme.placeholder}>{placeholder || '작성해 보세요...'}</div>}
-                            ErrorBoundary={LexicalErrorBoundary}
-                        />
-                    </div>
+            <div className="relative rounded-md bg-white overflow-hidden border border-zinc-300 focus-within:ring-2 focus-within:ring-zinc-900 focus-within:ring-offset-1 transition-all flex flex-col min-h-[280px]" dir="ltr">
+                <LexicalToolbar />
+                <div className="flex-1 min-h-[240px] relative overflow-y-auto">
+                    <RichTextPlugin
+                        contentEditable={
+                            <ContentEditable className="min-h-full p-5 outline-none text-sm" />
+                        }
+                        placeholder={<div className={theme.placeholder}>{placeholder || '내용을 입력하세요...'}</div>}
+                        ErrorBoundary={LexicalErrorBoundary}
+                    />
                 </div>
                 <HistoryPlugin />
                 <AutoFocusPlugin />

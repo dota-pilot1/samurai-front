@@ -157,7 +157,7 @@ export function LexicalToolbar() {
     };
 
     return (
-        <div className="flex items-center gap-1 p-2 border-b bg-white/40 backdrop-blur-md sticky top-0 z-20 overflow-x-auto no-scrollbar shadow-sm">
+        <div className="flex items-center gap-1 p-2 border-b border-zinc-200 bg-zinc-50 sticky top-0 z-20 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-0.5 pr-2 border-r border-zinc-200 mr-2">
                 <ToolbarButton
                     onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}

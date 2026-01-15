@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    ChevronDown, ChevronRight, FileText, FileCode,
+    ChevronDown, ChevronRight, FileText,
     Plus, MoreVertical, Search, Settings,
     Bell, Users, LayoutDashboard, Database,
     Rocket, Info, CheckCircle2, Zap, HelpCircle, Trophy,
@@ -11,8 +11,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import CodeBlock from '@/shared/ui/CodeBlock';
 import { Card } from '@/components/ui/card';
 import { api } from '@/shared/api/base';
 import { CommonContextMenu } from '@/shared/ui/CommonContextMenu';
@@ -211,15 +210,8 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
             const response = await api.get(`/specs/contents/${activeCategoryId}`);
             const data = response.data;
             setContents(data);
-
-            // Maintain the current selection if it still exists in the new list
-            if (data.length > 0) {
-                const current = data.find((c: any) => c.id === activeContent?.id) || data[0];
-                setActiveContent(current);
-                console.log('[SpecDetailView] fetchContents activeContent set to:', current.id);
-            } else {
-                setActiveContent(null);
-            }
+            // 카테고리 변경 시 상세보기 모달은 닫기
+            setActiveContent(null);
         } catch (error) {
             console.error('Failed to fetch contents:', error);
             setContents([]);
@@ -255,12 +247,6 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
             const response = await api.get(`/specs/contents/${activeCategoryId}`);
             const updatedContents = response.data;
             setContents(updatedContents);
-
-            // Auto-select the newly created content (usually the last one by displayOrder)
-            if (updatedContents.length > 0) {
-                const latest = updatedContents[updatedContents.length - 1];
-                setActiveContent(latest);
-            }
         } catch (error) {
             alert('Failed to add content');
         } finally {
@@ -295,10 +281,6 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
             // Update local state immediately without full re-fetch
             setContents(prev => prev.map(c => c.id === updatedRow.id ? updatedRow : c));
 
-            if (activeContent?.id === updatedRow.id) {
-                setActiveContent(updatedRow);
-            }
-
             setShowContentModal(null);
             setTargetContent(null);
         } catch (error) {
@@ -317,7 +299,7 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
             const response = await api.get(`/specs/contents/${activeCategoryId}`);
             setContents(response.data);
             if (activeContent?.id === id) {
-                setActiveContent(response.data[0] || null);
+                setActiveContent(null);
             }
         } catch (error) {
             alert('Failed to delete content');
@@ -458,7 +440,7 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
 
                 {/* Main Content Area */}
                 <div className="flex-1 overflow-y-auto bg-zinc-50/30 flex flex-col">
-                    <header className="px-10 py-8 bg-white border-b flex items-start justify-between">
+                    <header className="px-6 py-4 bg-white border-b flex items-start justify-between">
                         <div className="space-y-1">
                             <div className="flex items-center gap-3">
                                 <h1 className="text-2xl font-black text-zinc-900 tracking-tight">{tech} 상세 메뉴얼</h1>
@@ -491,89 +473,266 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                         )}
                     </header>
 
-                    <div className="p-6 max-w-5xl mx-auto w-full">
-                        {activeContent ? (
-                            <Card className="border border-zinc-100 shadow-xl shadow-zinc-200/20 rounded-[32px] overflow-hidden min-h-[600px] bg-white transition-all">
-                                <div className="p-10 space-y-8">
-                                    <section className="space-y-4 relative">
-                                        {isAdminMode && (
-                                            <div className="absolute top-0 right-0 flex gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setTargetContent(activeContent);
-                                                        contentRef.current = activeContent?.content || '';
-                                                        setShowContentModal('edit');
-                                                    }}
-                                                    className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-400 hover:text-blue-600"
-                                                >
-                                                    <Pencil size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteContent(activeContent.id)}
-                                                    className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-400 hover:text-red-600"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        )}
-                                        <h2 className="text-4xl font-black text-zinc-900 tracking-tight leading-tight">
-                                            {activeContent.title}
-                                        </h2>
-                                        {activeContent.itemType && (
-                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-bold rounded-full border border-zinc-200 uppercase tracking-wider">
-                                                {activeContent.itemType === 'CODE' ? <FileCode size={12} /> : <Zap size={12} />}
-                                                {activeContent.itemType === 'CODE' ? 'Implementation' : 'Concept Node'}
-                                            </div>
-                                        )}
-                                    </section>
-
-                                    <div className="prose prose-zinc max-w-none">
-                                        <div className="p-8 rounded-[2rem] bg-zinc-50 border border-zinc-100 text-zinc-600 font-medium leading-relaxed">
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkGfm, remarkBreaks]}
-                                                components={{
-                                                    p({ children }) {
-                                                        // 빈 문단이면 non-breaking space 렌더링
-                                                        const isEmpty = !children || (Array.isArray(children) && children.length === 0) || children === '';
-                                                        return <p className="mb-3 last:mb-0 min-h-[1.5em]">{isEmpty ? '\u00A0' : children}</p>;
-                                                    },
-                                                    code({ node, inline, className, children, ...props }: any) {
-                                                        const match = /language-(\w+)/.exec(className || '');
-                                                        return !inline && match ? (
-                                                            <SyntaxHighlighter
-                                                                style={vscDarkPlus as any}
-                                                                language={match[1]}
-                                                                PreTag="div"
-                                                                {...props}
+                    <div className="p-6 w-full">
+                        {contents.length > 0 ? (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                                {/* 1열: 1~5번째 */}
+                                <div className="flex flex-col gap-5">
+                                    {contents.slice(0, 5).map((content) => (
+                                        <Card
+                                            key={content.id}
+                                            className={`border-2 shadow-lg hover:shadow-xl rounded-2xl overflow-hidden bg-white transition-all cursor-pointer hover:-translate-y-1 ${activeContent?.id === content.id ? 'border-blue-400 shadow-blue-100' : 'border-zinc-200 hover:border-zinc-300'}`}
+                                            onClick={() => setActiveContent(content)}
+                                        >
+                                            <div className="p-6 space-y-4">
+                                                <section className="space-y-3 relative">
+                                                    {isAdminMode && (
+                                                        <div className="absolute top-0 right-0 flex gap-1">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setTargetContent(content);
+                                                                    contentRef.current = content?.content || '';
+                                                                    setShowContentModal('edit');
+                                                                }}
+                                                                className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-blue-600"
                                                             >
-                                                                {String(children).replace(/\n$/, '')}
-                                                            </SyntaxHighlighter>
-                                                        ) : (
-                                                            <code className={className} {...props}>
-                                                                {children}
-                                                            </code>
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                {activeContent.content}
-                                            </ReactMarkdown>
-                                        </div>
-                                    </div>
+                                                                <Pencil size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteContent(content.id);
+                                                                }}
+                                                                className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-red-600"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <h2 className="text-xl font-black text-zinc-900 tracking-tight leading-tight pr-16">
+                                                        {content.title}
+                                                    </h2>
+                                                </section>
 
+                                                <div className="prose prose-zinc prose-sm max-w-none">
+                                                    <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-100 text-zinc-600 text-sm leading-relaxed max-h-[300px] overflow-hidden relative">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                                                            components={{
+                                                                p({ children }) {
+                                                                    const isEmpty = !children || (Array.isArray(children) && children.length === 0) || children === '';
+                                                                    return <p className="mb-2 last:mb-0 min-h-[1.2em]">{isEmpty ? '\u00A0' : children}</p>;
+                                                                },
+                                                                code({ node, inline, className, children, ...props }: any) {
+                                                                    const match = /language-(\w+)/.exec(className || '');
+                                                                    return !inline && match ? (
+                                                                        <CodeBlock
+                                                                            code={String(children).replace(/\n$/, '')}
+                                                                            language={match[1]}
+                                                                        />
+                                                                    ) : (
+                                                                        <code className="bg-zinc-200 px-1 py-0.5 rounded text-xs font-mono text-zinc-800" {...props}>
+                                                                            {children}
+                                                                        </code>
+                                                                    );
+                                                                }
+                                                            }}
+                                                        >
+                                                            {content.content}
+                                                        </ReactMarkdown>
+                                                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-zinc-50 to-transparent pointer-events-none" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
                                 </div>
-                            </Card>
+                                {/* 2열: 6~10번째 */}
+                                <div className="flex flex-col gap-5">
+                                    {contents.slice(5, 10).map((content) => (
+                                    <Card
+                                        key={content.id}
+                                        className={`border-2 shadow-lg hover:shadow-xl rounded-2xl overflow-hidden bg-white transition-all cursor-pointer hover:-translate-y-1 ${activeContent?.id === content.id ? 'border-blue-400 shadow-blue-100' : 'border-zinc-200 hover:border-zinc-300'}`}
+                                        onClick={() => setActiveContent(content)}
+                                    >
+                                        <div className="p-6 space-y-4">
+                                            <section className="space-y-3 relative">
+                                                {isAdminMode && (
+                                                    <div className="absolute top-0 right-0 flex gap-1">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setTargetContent(content);
+                                                                contentRef.current = content?.content || '';
+                                                                setShowContentModal('edit');
+                                                            }}
+                                                            className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-blue-600"
+                                                        >
+                                                            <Pencil size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteContent(content.id);
+                                                            }}
+                                                            className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-red-600"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <h2 className="text-xl font-black text-zinc-900 tracking-tight leading-tight pr-16">
+                                                    {content.title}
+                                                </h2>
+                                            </section>
+
+                                            <div className="prose prose-zinc prose-sm max-w-none">
+                                                <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-100 text-zinc-600 text-sm leading-relaxed max-h-[300px] overflow-hidden relative">
+                                                    <ReactMarkdown
+                                                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                                                        components={{
+                                                            p({ children }) {
+                                                                const isEmpty = !children || (Array.isArray(children) && children.length === 0) || children === '';
+                                                                return <p className="mb-2 last:mb-0 min-h-[1.2em]">{isEmpty ? '\u00A0' : children}</p>;
+                                                            },
+                                                            code({ node, inline, className, children, ...props }: any) {
+                                                                const match = /language-(\w+)/.exec(className || '');
+                                                                return !inline && match ? (
+                                                                    <CodeBlock
+                                                                        code={String(children).replace(/\n$/, '')}
+                                                                        language={match[1]}
+                                                                    />
+                                                                ) : (
+                                                                    <code className="bg-zinc-200 px-1 py-0.5 rounded text-xs font-mono text-zinc-800" {...props}>
+                                                                        {children}
+                                                                    </code>
+                                                                );
+                                                            }
+                                                        }}
+                                                    >
+                                                        {content.content}
+                                                    </ReactMarkdown>
+                                                    {/* Fade out gradient for overflow */}
+                                                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-zinc-50 to-transparent pointer-events-none" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                    ))}
+                                </div>
+                            </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center min-h-[600px] text-zinc-300">
-                                <div className="w-20 h-20 rounded-full bg-zinc-50 flex items-center justify-center mb-6">
-                                    <FileText size={40} className="opacity-20" />
+                            <div className="flex flex-col items-center justify-center min-h-[400px] text-zinc-300">
+                                <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center mb-4">
+                                    <FileText size={32} className="opacity-30" />
                                 </div>
-                                <h3 className="text-xl font-black tracking-tight mb-2">등록된 콘텐츠가 없습니다</h3>
+                                <h3 className="text-lg font-black tracking-tight mb-1">등록된 콘텐츠가 없습니다</h3>
                                 <p className="text-sm font-medium">관리자 권한으로 새로운 마스터 플랜을 등록할 수 있습니다.</p>
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* Detail View Modal */}
+                {activeContent && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
+                        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col rounded-lg shadow-2xl animate-in zoom-in-95 duration-200 bg-white border border-zinc-300">
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+                                <h2 className="text-lg font-bold text-zinc-900 truncate pr-4">
+                                    {activeContent.title}
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                    {isAdminMode && (
+                                        <button
+                                            onClick={() => {
+                                                setTargetContent(activeContent);
+                                                contentRef.current = activeContent?.content || '';
+                                                setShowContentModal('edit');
+                                                setActiveContent(null);
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-zinc-600 hover:bg-zinc-100 rounded text-sm font-medium transition-colors"
+                                        >
+                                            <Pencil size={14} />
+                                            수정
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setActiveContent(null)}
+                                        className="p-1.5 hover:bg-zinc-100 rounded transition-colors"
+                                    >
+                                        <X size={20} className="text-zinc-500" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="prose prose-zinc prose-sm max-w-none">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                                        components={{
+                                            p({ children }) {
+                                                const isEmpty = !children || (Array.isArray(children) && children.length === 0) || children === '';
+                                                return <p className="mb-3 last:mb-0 min-h-[1.2em] text-zinc-700 leading-relaxed">{isEmpty ? '\u00A0' : children}</p>;
+                                            },
+                                            code({ node, inline, className, children, ...props }: any) {
+                                                const match = /language-(\w+)/.exec(className || '');
+                                                return !inline && match ? (
+                                                    <CodeBlock
+                                                        code={String(children).replace(/\n$/, '')}
+                                                        language={match[1]}
+                                                    />
+                                                ) : (
+                                                    <code className="bg-zinc-100 px-1.5 py-0.5 rounded text-sm font-mono text-zinc-800" {...props}>
+                                                        {children}
+                                                    </code>
+                                                );
+                                            },
+                                            h1({ children }) {
+                                                return <h1 className="text-2xl font-bold text-zinc-900 mb-4 mt-6">{children}</h1>;
+                                            },
+                                            h2({ children }) {
+                                                return <h2 className="text-xl font-bold text-zinc-900 mb-3 mt-5">{children}</h2>;
+                                            },
+                                            h3({ children }) {
+                                                return <h3 className="text-lg font-bold text-zinc-900 mb-2 mt-4">{children}</h3>;
+                                            },
+                                            ul({ children }) {
+                                                return <ul className="list-disc ml-6 mb-4 space-y-1">{children}</ul>;
+                                            },
+                                            ol({ children }) {
+                                                return <ol className="list-decimal ml-6 mb-4 space-y-1">{children}</ol>;
+                                            },
+                                            li({ children }) {
+                                                return <li className="text-zinc-700">{children}</li>;
+                                            },
+                                            blockquote({ children }) {
+                                                return <blockquote className="border-l-4 border-zinc-300 pl-4 italic text-zinc-600 my-4">{children}</blockquote>;
+                                            },
+                                            strong({ children }) {
+                                                return <strong className="font-bold text-zinc-900">{children}</strong>;
+                                            },
+                                        }}
+                                    >
+                                        {activeContent.content}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/50">
+                                <button
+                                    onClick={() => setActiveContent(null)}
+                                    className="w-full py-2.5 bg-zinc-900 text-white rounded-md font-medium text-sm hover:bg-zinc-800 transition-colors"
+                                >
+                                    닫기
+                                </button>
+                            </div>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Context Menu */}
                 {contextMenu && (
@@ -708,103 +867,87 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
 
                 {/* Content Modals */}
                 {(showContentModal === 'add' || (showContentModal === 'edit' && targetContent)) && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                        <Card className="w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-6 md:p-10 rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-200 bg-white border-none">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-2xl font-black flex items-center gap-2">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
+                        <Card className="w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col rounded-lg shadow-2xl animate-in zoom-in-95 duration-200 bg-white border border-zinc-300">
+                            {/* Compact Header */}
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200">
+                                <h3 className="text-sm font-semibold flex items-center gap-2 text-zinc-800">
                                     {showContentModal === 'add' ? (
                                         <>
-                                            <Plus size={24} className="text-blue-600" />
-                                            새 문서 작성
+                                            <Plus size={16} className="text-zinc-600" />
+                                            새 문서
                                         </>
                                     ) : (
                                         <>
-                                            <Pencil size={24} className="text-blue-600" />
+                                            <Pencil size={16} className="text-zinc-600" />
                                             문서 수정
                                         </>
                                     )}
                                 </h3>
-                                <button onClick={() => setShowContentModal(null)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
-                                    <X size={24} className="text-zinc-400" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowAIEditor(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white rounded text-[11px] font-medium hover:bg-zinc-800 transition-all"
+                                    >
+                                        <Sparkles size={12} />
+                                        AI 작성
+                                    </button>
+                                    <button onClick={() => setShowContentModal(null)} className="p-1.5 hover:bg-zinc-100 rounded transition-colors">
+                                        <X size={18} className="text-zinc-500" />
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="mb-6 flex justify-end">
-                                <button
-                                    onClick={() => setShowAIEditor(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-black hover:shadow-lg hover:shadow-blue-200 transition-all hover:-translate-y-0.5"
-                                >
-                                    <Sparkles size={14} />
-                                    AI 어시스턴트와 함께 작성하기
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto space-y-6 pr-2 min-h-0">
+                            {/* Form Content */}
+                            <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
                                 <div>
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">문서 제목</label>
+                                    <label className="text-xs font-medium text-zinc-500 mb-1.5 block">제목</label>
                                     <input
                                         type="text"
                                         value={showContentModal === 'add' ? newContentData.title : targetContent.title}
                                         onChange={(e) => showContentModal === 'add'
                                             ? setNewContentData({ ...newContentData, title: e.target.value })
                                             : setTargetContent({ ...targetContent, title: e.target.value })}
-                                        className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-lg"
+                                        className="w-full px-3 py-2.5 bg-white border border-zinc-300 rounded-md focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 focus:border-zinc-900 outline-none transition-all font-medium text-sm"
                                         placeholder="제목을 입력하세요"
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">노트 종류</label>
-                                    <div className="flex gap-2">
-                                        {[
-                                            { id: 'CONCEPT', label: '개념 설명', icon: <Zap size={14} /> },
-                                            { id: 'CODE', label: '코드 조각', icon: <FileText size={14} /> },
-                                        ].map((t) => (
-                                            <button
-                                                key={t.id}
-                                                onClick={() => showContentModal === 'add'
-                                                    ? setNewContentData({ ...newContentData, itemType: t.id })
-                                                    : setTargetContent({ ...targetContent, itemType: t.id })}
-                                                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border transition-all font-bold text-xs ${(showContentModal === 'add' ? newContentData.itemType : targetContent.itemType) === t.id
-                                                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100'
-                                                    : 'bg-white border-zinc-100 text-zinc-500 hover:bg-zinc-50'
-                                                    }`}
-                                            >
-                                                {t.icon}
-                                                {t.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 min-h-[300px] flex flex-col">
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">본문 내용 (Meta Lexical Editor 지원)</label>
+                                <div className="flex-1 min-h-[280px] flex flex-col">
+                                    <label className="text-xs font-medium text-zinc-500 mb-1.5 block">본문</label>
                                     <div className="flex-1 flex flex-col min-h-0">
                                         <LexicalEditor
                                             key={showContentModal === 'add' ? 'new' : `edit-${targetContent.id}`}
                                             value={showContentModal === 'add' ? newContentData.content : targetContent.content}
                                             onChange={(markdown) => {
-                                                contentRef.current = markdown; // Core fix: absolute latest sync
+                                                contentRef.current = markdown;
                                                 if (showContentModal === 'add') {
                                                     setNewContentData(prev => ({ ...prev, content: markdown }));
                                                 } else {
                                                     setTargetContent((prev: any) => prev ? ({ ...prev, content: markdown }) : null);
                                                 }
                                             }}
-                                            placeholder="# 제목&#10;내용을 입력하세요..."
+                                            placeholder="내용을 입력하세요..."
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-6 border-t mt-6">
-                                <button onClick={() => setShowContentModal(null)} className="flex-1 p-4 bg-zinc-100 text-zinc-600 rounded-2xl font-bold text-sm hover:bg-zinc-200" disabled={isSubmitting}>취소</button>
+                            {/* Footer Buttons */}
+                            <div className="flex gap-3 px-5 py-4 border-t border-zinc-200">
                                 <button
-                                    onClick={showContentModal === 'add' ? handleAddContent : handleEditContent}
-                                    className="flex-[2] p-4 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-100 disabled:opacity-50"
+                                    onClick={() => setShowContentModal(null)}
+                                    className="flex-1 py-2.5 border border-zinc-300 text-zinc-700 rounded-md font-medium text-sm hover:bg-zinc-50 transition-colors"
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting ? '처리 중...' : (showContentModal === 'add' ? '문서 저장하기' : '수정 완료')}
+                                    취소
+                                </button>
+                                <button
+                                    onClick={showContentModal === 'add' ? handleAddContent : handleEditContent}
+                                    className="flex-1 py-2.5 bg-zinc-900 text-white rounded-md font-medium text-sm hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? '처리 중...' : (showContentModal === 'add' ? '저장' : '수정 완료')}
                                 </button>
                             </div>
                         </Card>
