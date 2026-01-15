@@ -10,18 +10,22 @@ export const Header = () => {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-            <div className="w-full flex h-14 items-center justify-between px-6">
-                <div className="flex items-center gap-6">
+            <div className="w-full flex h-14 items-center px-6">
+                {/* 좌측: 로고 */}
+                <div className="flex-1 flex items-center">
                     <Link href="/" className="flex items-center space-x-2">
                         <span className="font-bold text-xl text-blue-900 italic tracking-tight">Mechanic Samurai</span>
                     </Link>
-                    <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-                        <Link href="/specs" className="transition-colors hover:text-blue-600">스펙 관리</Link>
-                        <Link href="/auto-consult" className="transition-colors hover:text-blue-600">자동 상담</Link>
-                    </nav>
                 </div>
 
-                <div className="flex items-center gap-4">
+                {/* 중앙: 네비게이션 */}
+                <nav className="hidden md:flex items-center space-x-8 text-sm font-medium">
+                    <Link href="/specs" className="transition-colors hover:text-blue-600">스펙 관리</Link>
+                    <Link href="/auto-consult" className="transition-colors hover:text-blue-600">자동 상담</Link>
+                </nav>
+
+                {/* 우측: 사용자 정보 */}
+                <div className="flex-1 flex items-center justify-end gap-4">
                     {user ? (
                         <div className="flex items-center gap-4">
                             <div className="flex flex-col items-end leading-tight hidden sm:flex">
