@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api } from '@/shared/api/base';
 import * as Lucide from 'lucide-react';
-import { Plus, Pencil, Trash2, LayoutDashboard, Rocket, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, LayoutDashboard, Rocket, ChevronRight, ChevronDown } from 'lucide-react';
 import { CompactDialog } from '@/shared/ui/CompactDialog';
 
 // Dynamic Icon Mapper (핵심 5개만)
@@ -30,6 +30,8 @@ export const TechMatrix = ({ isAdminMode }: TechMatrixProps) => {
     const [targetGroup, setTargetGroup] = useState<any>(null);
     const [targetTech, setTargetTech] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
 
     const [groupData, setGroupData] = useState({ name: '', displayOrder: 0 });
     const [techData, setTechData] = useState({
@@ -202,30 +204,65 @@ export const TechMatrix = ({ isAdminMode }: TechMatrixProps) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {category.items.map((tech: any) => {
                             const IconComponent = IconMap[tech.icon] || Lucide.FileText;
+                            const isExpanded = expandedCards.has(tech.id);
+                            const toggleExpand = (e: React.MouseEvent) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setExpandedCards(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(tech.id)) {
+                                        next.delete(tech.id);
+                                    } else {
+                                        next.add(tech.id);
+                                    }
+                                    return next;
+                                });
+                            };
                             return (
                                 <div key={tech.id} className="relative group/card">
-                                    <Link
-                                        href={`/specs?tech=${encodeURIComponent(tech.techType || tech.name)}`}
-                                        className="block"
-                                    >
-                                        <div className="relative flex items-center gap-4 p-4 bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 transition-all hover:shadow-md">
-                                            <div className="p-2.5 rounded-lg bg-zinc-100 text-zinc-600 group-hover/card:bg-blue-50 group-hover/card:text-blue-600 transition-colors">
-                                                <IconComponent size={20} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-zinc-900 group-hover/card:text-blue-600 transition-colors text-sm truncate">
-                                                    {tech.name}
-                                                </h3>
-                                                {tech.description && (
-                                                    <p className="text-xs text-zinc-400 truncate mt-0.5">{tech.description}</p>
-                                                )}
-                                            </div>
-                                            <ChevronRight size={16} className="text-zinc-300 group-hover/card:text-blue-400 group-hover/card:translate-x-0.5 transition-all shrink-0" />
+                                    <div className={`bg-white border border-zinc-200 rounded-xl transition-all hover:shadow-md ${isExpanded ? 'shadow-md border-zinc-300' : ''}`}>
+                                        {/* 카드 헤더 */}
+                                        <div className="flex items-center gap-4 p-4">
+                                            <Link
+                                                href={`/specs?tech=${encodeURIComponent(tech.techType || tech.name)}`}
+                                                className="flex items-center gap-4 flex-1 min-w-0"
+                                            >
+                                                <div className={`p-2.5 rounded-lg transition-colors ${isExpanded ? 'bg-blue-50 text-blue-600' : 'bg-zinc-100 text-zinc-600 group-hover/card:bg-blue-50 group-hover/card:text-blue-600'}`}>
+                                                    <IconComponent size={20} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className={`font-semibold transition-colors text-sm truncate ${isExpanded ? 'text-blue-600' : 'text-zinc-900 group-hover/card:text-blue-600'}`}>
+                                                        {tech.name}
+                                                    </h3>
+                                                    {!isExpanded && tech.description && (
+                                                        <p className="text-xs text-zinc-400 truncate mt-0.5">{tech.description}</p>
+                                                    )}
+                                                </div>
+                                            </Link>
+                                            <button
+                                                onClick={toggleExpand}
+                                                className={`p-1.5 rounded-md transition-all shrink-0 ${isExpanded ? 'bg-blue-100 text-blue-600' : 'hover:bg-zinc-100 text-zinc-300 group-hover/card:text-blue-400'}`}
+                                            >
+                                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                            </button>
                                         </div>
-                                    </Link>
+
+                                        {/* 확장된 내용 */}
+                                        {isExpanded && (
+                                            <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="pt-3 border-t border-zinc-100">
+                                                    {tech.description ? (
+                                                        <p className="text-sm text-zinc-600 leading-relaxed">{tech.description}</p>
+                                                    ) : (
+                                                        <p className="text-sm text-zinc-400 italic">설명이 없습니다</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {isAdminMode && (
-                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
+                                        <div className="absolute top-2 right-10 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
                                             <button
                                                 onClick={(e) => { e.preventDefault(); setTargetTech(tech); setShowTechModal('edit'); }}
                                                 className="p-1.5 bg-white hover:bg-zinc-50 rounded-md border border-zinc-200 text-zinc-400 hover:text-blue-600 transition-all shadow-sm"
