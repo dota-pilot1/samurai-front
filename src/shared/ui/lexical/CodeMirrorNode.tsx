@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, ReactElement } from 'react';
 import {
     DecoratorNode,
     LexicalNode,
@@ -77,7 +77,7 @@ function CodeMirrorComponent({
     );
 }
 
-export class CodeMirrorNode extends DecoratorNode<JSX.Element> {
+export class CodeMirrorNode extends DecoratorNode<ReactElement> {
     __code: string;
     __language: string;
 
@@ -123,7 +123,7 @@ export class CodeMirrorNode extends DecoratorNode<JSX.Element> {
         writable.__language = language;
     }
 
-    decorate(): JSX.Element {
+    decorate(): ReactElement {
         return (
             <CodeMirrorComponent
                 code={this.__code}

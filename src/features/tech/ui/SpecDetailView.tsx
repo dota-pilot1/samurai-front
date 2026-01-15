@@ -6,7 +6,7 @@ import {
     Plus, MoreVertical, Search, Settings,
     Bell, Users, LayoutDashboard, Database,
     Rocket, Info, CheckCircle2, Zap, HelpCircle, Trophy,
-    X, Pencil, Trash2, Sparkles
+    X, Pencil, Trash2, Sparkles, Loader2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -17,6 +17,11 @@ import { api } from '@/shared/api/base';
 import { CommonContextMenu } from '@/shared/ui/CommonContextMenu';
 import LexicalEditor from '@/shared/ui/LexicalEditor';
 import AIEditorDialog from '@/shared/ui/AIEditorDialog';
+import { useSpecContents } from '../hooks/useSpecContents';
+import { useCreateSpecContent } from '../hooks/useCreateSpecContent';
+import { useUpdateSpecContent } from '../hooks/useUpdateSpecContent';
+import { useDeleteSpecContent } from '../hooks/useDeleteSpecContent';
+import type { SpecContent } from '@/entities/tech/model/types';
 
 interface SpecDetailViewProps {
     tech: string;
@@ -124,20 +129,27 @@ const CategoryNode = ({
 export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetailViewProps) => {
     const [categories, setCategories] = useState<any[]>([]);
     const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
-    const [contents, setContents] = useState<any[]>([]);
-    const [activeContent, setActiveContent] = useState<any>(null);
+    const [activeContent, setActiveContent] = useState<SpecContent | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // TanStack Query Hooks
+    const { data: contents = [], isLoading: isContentsLoading } = useSpecContents(activeCategoryId);
+    const createMutation = useCreateSpecContent();
+    const updateMutation = useUpdateSpecContent();
+    const deleteMutation = useDeleteSpecContent();
 
     // Admin States
     const [showModal, setShowModal] = useState<'add' | 'edit' | null>(null);
     const [showContentModal, setShowContentModal] = useState<'add' | 'edit' | null>(null);
     const [targetCategory, setTargetCategory] = useState<any>(null);
     const [newCategoryData, setNewCategoryData] = useState({ name: '', type: 'TOPIC', parentId: null as number | null });
-    const [newContentData, setNewContentData] = useState({ title: '', content: '', itemType: 'CONCEPT' });
-    const [targetContent, setTargetContent] = useState<any>(null);
+    const [newContentData, setNewContentData] = useState({ title: '', content: '' });
+    const [targetContent, setTargetContent] = useState<SpecContent | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, category: any } | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [showAIEditor, setShowAIEditor] = useState(false);
+
+    // Mutation 로딩 상태 통합
+    const isSubmitting = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
     // Sidebar Resize States
     const [sidebarWidth, setSidebarWidth] = useState(288); // 72 * 4 = 288px (w-72 default)
@@ -200,24 +212,10 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
         }
     };
 
-    const fetchContents = async () => {
-        if (!activeCategoryId) {
-            setContents([]);
-            setActiveContent(null);
-            return;
-        }
-        try {
-            const response = await api.get(`/specs/contents/${activeCategoryId}`);
-            const data = response.data;
-            setContents(data);
-            // 카테고리 변경 시 상세보기 모달은 닫기
-            setActiveContent(null);
-        } catch (error) {
-            console.error('Failed to fetch contents:', error);
-            setContents([]);
-            setActiveContent(null);
-        }
-    };
+    // 카테고리 변경 시 상세보기 모달 닫기
+    useEffect(() => {
+        setActiveContent(null);
+    }, [activeCategoryId]);
 
     useEffect(() => {
         const init = async () => {
@@ -228,76 +226,52 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
         init();
     }, [tech]);
 
-    useEffect(() => {
-        fetchContents();
-    }, [activeCategoryId]);
-
-    // Content Handlers
+    // Content Handlers (TanStack Query Mutations)
     const handleAddContent = async () => {
         if (!newContentData.title.trim() || !activeCategoryId || isSubmitting) return;
-        setIsSubmitting(true);
         try {
-            await api.post('/specs/contents', {
-                ...newContentData,
-                content: contentRef.current, // Use ref for absolute latest sync
-                categoryId: activeCategoryId
+            await createMutation.mutateAsync({
+                title: newContentData.title,
+                content: contentRef.current,
+                categoryId: activeCategoryId,
             });
             setShowContentModal(null);
-            setNewContentData({ title: '', content: '', itemType: 'CONCEPT' });
-            const response = await api.get(`/specs/contents/${activeCategoryId}`);
-            const updatedContents = response.data;
-            setContents(updatedContents);
+            setNewContentData({ title: '', content: '' });
         } catch (error) {
             alert('Failed to add content');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
     const handleEditContent = async () => {
-        // Use the ref content if state is lagging
         const finalContent = contentRef.current;
 
         if (!targetContent || !targetContent.id || !targetContent.title.trim() || isSubmitting) {
-            console.error('[SpecDetailView] Invalid targetContent or already submitting:', targetContent);
             return;
         }
 
-        setIsSubmitting(true);
-        const payload = { ...targetContent, content: finalContent };
-        console.log('[SpecDetailView] handleEditContent START id=', targetContent.id, 'contentLen=', finalContent.length);
-
         try {
-            const patchResponse = await api.patch(`/specs/contents/${targetContent.id}`, payload);
-            console.log('[SpecDetailView] handleEditContent SUCCESS response:', patchResponse.data);
-
-            // Drizzle returns an array for .returning()
-            const updatedRow = Array.isArray(patchResponse.data) ? patchResponse.data[0] : patchResponse.data;
-
-            if (!updatedRow) {
-                throw new Error('No data returned from update');
-            }
-
-            // Update local state immediately without full re-fetch
-            setContents(prev => prev.map(c => c.id === updatedRow.id ? updatedRow : c));
-
+            await updateMutation.mutateAsync({
+                id: targetContent.id,
+                categoryId: targetContent.categoryId,
+                data: {
+                    title: targetContent.title,
+                    content: finalContent,
+                },
+            });
             setShowContentModal(null);
             setTargetContent(null);
         } catch (error) {
-            console.error('[SpecDetailView] handleEditContent ERROR:', error);
             alert('문서 내용 수정 중 오류가 발생했습니다. 다시 시도해 주세요.');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
     const handleDeleteContent = async (id: number) => {
-        if (!confirm('정말 이 문서를 삭제하시겠습니까?')) return;
+        if (!confirm('정말 이 문서를 삭제하시겠습니까?') || !activeCategoryId) return;
         try {
-            await api.delete(`/specs/contents/${id}`);
-            // Re-fetch
-            const response = await api.get(`/specs/contents/${activeCategoryId}`);
-            setContents(response.data);
+            await deleteMutation.mutateAsync({
+                id,
+                categoryId: activeCategoryId,
+            });
             if (activeContent?.id === id) {
                 setActiveContent(null);
             }
@@ -307,9 +281,11 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
     };
 
     // Admin Handlers
+    const [isCategorySubmitting, setIsCategorySubmitting] = useState(false);
+
     const handleAddCategory = async () => {
-        if (!newCategoryData.name.trim() || isSubmitting) return;
-        setIsSubmitting(true);
+        if (!newCategoryData.name.trim() || isCategorySubmitting) return;
+        setIsCategorySubmitting(true);
         try {
             await api.post('/specs/categories', {
                 name: newCategoryData.name,
@@ -323,13 +299,13 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
         } catch (error) {
             alert('Failed to add category');
         } finally {
-            setIsSubmitting(false);
+            setIsCategorySubmitting(false);
         }
     };
 
     const handleEditCategory = async () => {
-        if (!targetCategory.name.trim() || isSubmitting) return;
-        setIsSubmitting(true);
+        if (!targetCategory.name.trim() || isCategorySubmitting) return;
+        setIsCategorySubmitting(true);
         try {
             await api.patch(`/specs/categories/${targetCategory.id}`, {
                 name: targetCategory.name,
@@ -341,7 +317,7 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
         } catch (error) {
             alert('Failed to update category');
         } finally {
-            setIsSubmitting(false);
+            setIsCategorySubmitting(false);
         }
     };
 
@@ -462,7 +438,7 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                         {isAdminMode && (
                             <button
                                 onClick={() => {
-                                    setNewContentData({ title: '', content: '', itemType: 'CONCEPT' });
+                                    setNewContentData({ title: '', content: '' });
                                     contentRef.current = '';
                                     setShowContentModal('add');
                                 }}
@@ -904,10 +880,10 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                                     <label className="text-xs font-medium text-zinc-500 mb-1.5 block">제목</label>
                                     <input
                                         type="text"
-                                        value={showContentModal === 'add' ? newContentData.title : targetContent.title}
+                                        value={showContentModal === 'add' ? newContentData.title : targetContent?.title || ''}
                                         onChange={(e) => showContentModal === 'add'
                                             ? setNewContentData({ ...newContentData, title: e.target.value })
-                                            : setTargetContent({ ...targetContent, title: e.target.value })}
+                                            : targetContent && setTargetContent({ ...targetContent, title: e.target.value })}
                                         className="w-full px-3 py-2.5 bg-white border border-zinc-300 rounded-md focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 focus:border-zinc-900 outline-none transition-all font-medium text-sm"
                                         placeholder="제목을 입력하세요"
                                     />
@@ -917,14 +893,14 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                                     <label className="text-xs font-medium text-zinc-500 mb-1.5 block">본문</label>
                                     <div className="flex-1 flex flex-col min-h-0">
                                         <LexicalEditor
-                                            key={showContentModal === 'add' ? 'new' : `edit-${targetContent.id}`}
-                                            value={showContentModal === 'add' ? newContentData.content : targetContent.content}
+                                            key={showContentModal === 'add' ? 'new' : `edit-${targetContent?.id}`}
+                                            value={showContentModal === 'add' ? newContentData.content : targetContent?.content || ''}
                                             onChange={(markdown) => {
                                                 contentRef.current = markdown;
                                                 if (showContentModal === 'add') {
                                                     setNewContentData(prev => ({ ...prev, content: markdown }));
                                                 } else {
-                                                    setTargetContent((prev: any) => prev ? ({ ...prev, content: markdown }) : null);
+                                                    setTargetContent((prev) => prev ? ({ ...prev, content: markdown }) : null);
                                                 }
                                             }}
                                             placeholder="내용을 입력하세요..."
@@ -965,7 +941,7 @@ export const SpecDetailView = ({ tech, isAdminMode, setIsAdminMode }: SpecDetail
                     if (showContentModal === 'add') {
                         setNewContentData(prev => ({ ...prev, content }));
                     } else if (targetContent) {
-                        setTargetContent((prev: any) => prev ? ({ ...prev, content }) : null);
+                        setTargetContent((prev) => prev ? ({ ...prev, content }) : null);
                     }
                     setShowAIEditor(false);
                 }}
