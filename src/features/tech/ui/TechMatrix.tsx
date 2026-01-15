@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api } from '@/shared/api/base';
 import * as Lucide from 'lucide-react';
-import { Plus, MoreVertical, Pencil, Trash2, Settings, X, Info, Zap, FileText, LayoutDashboard, Database, Rocket, Workflow, ChevronRight } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Plus, Pencil, Trash2, LayoutDashboard, Rocket, ChevronRight } from 'lucide-react';
+import { CompactDialog } from '@/shared/ui/CompactDialog';
 
 // Dynamic Icon Mapper
 const IconMap: Record<string, any> = {
@@ -175,44 +175,44 @@ export const TechMatrix = ({ isAdminMode }: TechMatrixProps) => {
     }
 
     return (
-        <div className="space-y-16">
+        <div className="space-y-10">
             {categories.map((category, catIdx) => (
-                <div key={category.id} className="group/section space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ animationDelay: `${catIdx * 100}ms` }}>
-                    <div className="flex items-center gap-4">
-                        <div className="h-[2px] w-8 bg-zinc-900" />
-                        <h2 className="text-base font-black text-zinc-900 uppercase tracking-tighter flex items-center gap-2">
+                <div key={category.id} className="group/section space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${catIdx * 50}ms` }}>
+                    <div className="flex items-center gap-3">
+                        <div className="h-px w-6 bg-zinc-300" />
+                        <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-tight flex items-center gap-2">
                             {category.name}
-                            <span className="text-[10px] text-zinc-300 font-bold ml-2 tracking-widest">{category.items?.length || 0} UNITS</span>
+                            <span className="text-[9px] text-zinc-400 font-medium tracking-wide">{category.items?.length || 0} UNITS</span>
                         </h2>
                         {isAdminMode && (
-                            <div className="flex items-center gap-2 opacity-0 group-hover/section:opacity-100 transition-all">
+                            <div className="flex items-center gap-1 opacity-0 group-hover/section:opacity-100 transition-all">
                                 <button
                                     onClick={() => { setTargetGroup(category); setShowGroupModal('edit'); }}
-                                    className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-blue-600 transition-colors"
+                                    className="p-1.5 hover:bg-zinc-100 rounded text-zinc-400 hover:text-blue-600 transition-colors"
                                 >
-                                    <Pencil size={14} />
+                                    <Pencil size={12} />
                                 </button>
                                 <button
                                     onClick={() => handleDeleteGroup(category.id)}
-                                    className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-red-500 transition-colors"
+                                    className="p-1.5 hover:bg-zinc-100 rounded text-zinc-400 hover:text-red-500 transition-colors"
                                 >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={12} />
                                 </button>
                             </div>
                         )}
-                        <div className="h-[1px] flex-1 bg-zinc-100" />
+                        <div className="h-px flex-1 bg-zinc-100" />
                         {isAdminMode && (
                             <button
                                 onClick={() => { setTechData({ ...techData, parentId: category.id }); setShowTechModal('add'); }}
-                                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl text-[11px] font-black hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-zinc-200"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white rounded text-[10px] font-semibold hover:bg-zinc-800 transition-all"
                             >
-                                <Plus size={14} />
+                                <Plus size={12} />
                                 ADD TECH
                             </button>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {category.items.map((tech: any) => {
                             const IconComponent = IconMap[tech.icon] || Lucide.FileText;
                             return (
@@ -221,33 +221,33 @@ export const TechMatrix = ({ isAdminMode }: TechMatrixProps) => {
                                         href={`/specs?tech=${encodeURIComponent(tech.techType || tech.name)}`}
                                         className="block"
                                     >
-                                        <div className="relative flex items-center p-6 bg-white border border-zinc-100 rounded-[28px] hover:border-blue-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/5 hover:-translate-y-1.5">
-                                            <div className={`p-4 rounded-2xl ${tech.bg || 'bg-zinc-50'} ${tech.color || 'text-zinc-400'} mr-5 group-hover/card:scale-110 group-hover/card:rotate-3 transition-all duration-700 shadow-sm`}>
-                                                <IconComponent size={24} />
+                                        <div className="relative flex items-center p-4 bg-white border border-zinc-200 rounded-lg hover:border-zinc-300 transition-all hover:shadow-md hover:-translate-y-0.5">
+                                            <div className={`p-3 rounded-lg ${tech.bg || 'bg-zinc-50'} ${tech.color || 'text-zinc-400'} mr-4 group-hover/card:scale-105 transition-transform`}>
+                                                <IconComponent size={20} />
                                             </div>
                                             <div className="flex flex-col flex-1 min-w-0">
-                                                <h3 className="font-black text-zinc-900 group-hover/card:text-blue-600 transition-colors text-[15px] tracking-tight truncate">
+                                                <h3 className="font-semibold text-zinc-900 group-hover/card:text-blue-600 transition-colors text-sm truncate">
                                                     {tech.name}
                                                 </h3>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Master Spec</span>
-                                                    <ChevronRight size={10} className="text-zinc-200 group-hover/card:translate-x-1 transition-transform" />
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="text-[9px] font-medium text-zinc-400 uppercase tracking-wide">Master Spec</span>
+                                                    <ChevronRight size={10} className="text-zinc-300 group-hover/card:translate-x-0.5 transition-transform" />
                                                 </div>
                                             </div>
                                         </div>
                                     </Link>
 
                                     {isAdminMode && (
-                                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
+                                        <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover/card:opacity-100 transition-all">
                                             <button
                                                 onClick={(e) => { e.preventDefault(); setTargetTech(tech); setShowTechModal('edit'); }}
-                                                className="p-2 bg-white/80 backdrop-blur-md hover:bg-white rounded-full shadow-sm text-zinc-400 hover:text-blue-600 border border-transparent hover:border-zinc-100 transition-all"
+                                                className="p-1.5 bg-white hover:bg-zinc-50 rounded border border-zinc-200 text-zinc-400 hover:text-blue-600 transition-all"
                                             >
                                                 <Pencil size={12} />
                                             </button>
                                             <button
                                                 onClick={(e) => { e.preventDefault(); handleDeleteTech(tech.id); }}
-                                                className="p-2 bg-white/80 backdrop-blur-md hover:bg-white rounded-full shadow-sm text-zinc-400 hover:text-red-500 border border-transparent hover:border-zinc-100 transition-all"
+                                                className="p-1.5 bg-white hover:bg-zinc-50 rounded border border-zinc-200 text-zinc-400 hover:text-red-500 transition-all"
                                             >
                                                 <Trash2 size={12} />
                                             </button>
@@ -263,129 +263,132 @@ export const TechMatrix = ({ isAdminMode }: TechMatrixProps) => {
             {isAdminMode && (
                 <button
                     onClick={() => setShowGroupModal('add')}
-                    className="w-full py-10 border-2 border-dashed border-zinc-100 rounded-[32px] text-zinc-300 hover:border-blue-200 hover:text-blue-400 hover:bg-blue-50/20 transition-all flex flex-col items-center justify-center gap-4 group"
+                    className="w-full py-6 border-2 border-dashed border-zinc-200 rounded-lg text-zinc-400 hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/30 transition-all flex items-center justify-center gap-3"
                 >
-                    <div className="p-4 bg-zinc-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
-                        <Plus size={32} />
-                    </div>
-                    <span className="text-sm font-black uppercase tracking-[0.2em]">New Technology Group</span>
+                    <Plus size={18} />
+                    <span className="text-xs font-bold uppercase tracking-wide">New Technology Group</span>
                 </button>
             )}
 
             {/* Modals for Groups */}
-            {(showGroupModal === 'add' || (showGroupModal === 'edit' && targetGroup)) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                    <Card className="w-full max-w-md p-8 rounded-[32px] shadow-2xl border-none bg-white animate-in zoom-in-95">
-                        <h3 className="text-xl font-black mb-6 flex items-center gap-2">
-                            <LayoutDashboard className="text-blue-600" />
-                            {showGroupModal === 'add' ? '새 기술 그룹 추가' : '기술 그룹 수정'}
-                        </h3>
-                        <div className="space-y-5">
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">그룹 이름</label>
-                                <input
-                                    type="text"
-                                    value={showGroupModal === 'add' ? groupData.name : targetGroup.name}
-                                    onChange={(e) => showGroupModal === 'add' ? setGroupData({ ...groupData, name: e.target.value }) : setTargetGroup({ ...targetGroup, name: e.target.value })}
-                                    className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
-                                    placeholder="예: INFRASTRUCTURE"
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-4">
-                                <button onClick={() => setShowGroupModal(null)} className="flex-1 p-4 bg-zinc-50 text-zinc-500 rounded-2xl font-bold hover:bg-zinc-100 transition-all">취소</button>
-                                <button onClick={showGroupModal === 'add' ? handleAddGroup : handleEditGroup} className="flex-1 p-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-lg" disabled={isSubmitting}>
-                                    {isSubmitting ? '처리 중...' : (showGroupModal === 'add' ? '그룹 생성' : '수정 완료')}
-                                </button>
-                            </div>
-                        </div>
-                    </Card>
+            <CompactDialog
+                isOpen={showGroupModal === 'add' || (showGroupModal === 'edit' && !!targetGroup)}
+                onClose={() => setShowGroupModal(null)}
+                title={
+                    <>
+                        <LayoutDashboard size={14} className="text-blue-600" />
+                        {showGroupModal === 'add' ? '새 기술 그룹 추가' : '기술 그룹 수정'}
+                    </>
+                }
+                maxWidth="max-w-md"
+                footer={
+                    <>
+                        <button onClick={() => setShowGroupModal(null)} className="flex-1 px-4 py-2 bg-zinc-100 text-zinc-600 rounded text-xs font-semibold hover:bg-zinc-200 transition-colors">취소</button>
+                        <button onClick={showGroupModal === 'add' ? handleAddGroup : handleEditGroup} className="flex-1 px-4 py-2 bg-zinc-900 text-white rounded text-xs font-semibold hover:bg-zinc-800 transition-colors" disabled={isSubmitting}>
+                            {isSubmitting ? '처리 중...' : (showGroupModal === 'add' ? '그룹 생성' : '수정 완료')}
+                        </button>
+                    </>
+                }
+            >
+                <div>
+                    <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-wide mb-1.5 block">그룹 이름</label>
+                    <input
+                        type="text"
+                        value={showGroupModal === 'add' ? groupData.name : targetGroup?.name || ''}
+                        onChange={(e) => showGroupModal === 'add' ? setGroupData({ ...groupData, name: e.target.value }) : setTargetGroup({ ...targetGroup, name: e.target.value })}
+                        className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                        placeholder="예: INFRASTRUCTURE"
+                    />
                 </div>
-            )}
+            </CompactDialog>
 
             {/* Modals for Techs */}
-            {(showTechModal === 'add' || (showTechModal === 'edit' && targetTech)) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                    <Card className="w-full max-w-lg p-8 rounded-[32px] shadow-2xl border-none bg-white animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-xl font-black mb-6 flex items-center gap-2">
-                            <Rocket className="text-blue-600" />
-                            {showTechModal === 'add' ? '새 기술 스택 추가' : '기술 스택 설정 수정'}
-                        </h3>
-                        <div className="space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">표시 이름</label>
-                                    <input
-                                        type="text"
-                                        value={showTechModal === 'add' ? techData.name : targetTech.name}
-                                        onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, name: e.target.value }) : setTargetTech({ ...targetTech, name: e.target.value })}
-                                        className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-sm"
-                                        placeholder="예: Docker"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">식별 코드 (techType)</label>
-                                    <input
-                                        type="text"
-                                        value={showTechModal === 'add' ? techData.techType : targetTech.techType}
-                                        onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, techType: e.target.value }) : setTargetTech({ ...targetTech, techType: e.target.value })}
-                                        className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-sm"
-                                        placeholder="예: docker"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3 block">아이콘 선택 (Lucide)</label>
-                                <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2 bg-zinc-50 rounded-2xl border border-zinc-100">
-                                    {Object.keys(IconMap).map((iconName) => {
-                                        const Icon = IconMap[iconName];
-                                        const currentIcon = showTechModal === 'add' ? techData.icon : targetTech.icon;
-                                        return (
-                                            <button
-                                                key={iconName}
-                                                onClick={() => showTechModal === 'add' ? setTechData({ ...techData, icon: iconName }) : setTargetTech({ ...targetTech, icon: iconName })}
-                                                className={`p-3 rounded-xl flex items-center justify-center transition-all ${currentIcon === iconName ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-white text-zinc-400'}`}
-                                            >
-                                                <Icon size={20} />
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">텍스트 색상 클래스</label>
-                                    <input
-                                        type="text"
-                                        value={showTechModal === 'add' ? techData.color : targetTech.color}
-                                        onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, color: e.target.value }) : setTargetTech({ ...targetTech, color: e.target.value })}
-                                        className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-xs"
-                                        placeholder="text-blue-600"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1.5 block">배경 색상 클래스</label>
-                                    <input
-                                        type="text"
-                                        value={showTechModal === 'add' ? techData.bg : targetTech.bg}
-                                        onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, bg: e.target.value }) : setTargetTech({ ...targetTech, bg: e.target.value })}
-                                        className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-xs"
-                                        placeholder="bg-blue-50"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <button onClick={() => setShowTechModal(null)} className="flex-1 p-4 bg-zinc-50 text-zinc-500 rounded-2xl font-bold hover:bg-zinc-100 transition-all">취소</button>
-                                <button onClick={showTechModal === 'add' ? handleAddTech : handleEditTech} className="flex-1 p-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-lg" disabled={isSubmitting}>
-                                    {isSubmitting ? '처리 중...' : (showTechModal === 'add' ? '기술 추가' : '수정 완료')}
-                                </button>
-                            </div>
+            <CompactDialog
+                isOpen={showTechModal === 'add' || (showTechModal === 'edit' && !!targetTech)}
+                onClose={() => setShowTechModal(null)}
+                title={
+                    <>
+                        <Rocket size={14} className="text-blue-600" />
+                        {showTechModal === 'add' ? '새 기술 스택 추가' : '기술 스택 설정 수정'}
+                    </>
+                }
+                maxWidth="max-w-lg"
+                footer={
+                    <>
+                        <button onClick={() => setShowTechModal(null)} className="flex-1 px-4 py-2 bg-zinc-100 text-zinc-600 rounded text-xs font-semibold hover:bg-zinc-200 transition-colors">취소</button>
+                        <button onClick={showTechModal === 'add' ? handleAddTech : handleEditTech} className="flex-1 px-4 py-2 bg-zinc-900 text-white rounded text-xs font-semibold hover:bg-zinc-800 transition-colors" disabled={isSubmitting}>
+                            {isSubmitting ? '처리 중...' : (showTechModal === 'add' ? '기술 추가' : '수정 완료')}
+                        </button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-wide mb-1.5 block">표시 이름</label>
+                            <input
+                                type="text"
+                                value={showTechModal === 'add' ? techData.name : targetTech?.name || ''}
+                                onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, name: e.target.value }) : setTargetTech({ ...targetTech, name: e.target.value })}
+                                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                                placeholder="예: Docker"
+                            />
                         </div>
-                    </Card>
+                        <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-wide mb-1.5 block">식별 코드 (techType)</label>
+                            <input
+                                type="text"
+                                value={showTechModal === 'add' ? techData.techType : targetTech?.techType || ''}
+                                onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, techType: e.target.value }) : setTargetTech({ ...targetTech, techType: e.target.value })}
+                                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                                placeholder="예: docker"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-wide mb-2 block">아이콘 선택 (Lucide)</label>
+                        <div className="grid grid-cols-8 gap-1.5 max-h-32 overflow-y-auto p-2 bg-zinc-50 rounded border border-zinc-200">
+                            {Object.keys(IconMap).map((iconName) => {
+                                const Icon = IconMap[iconName];
+                                const currentIcon = showTechModal === 'add' ? techData.icon : targetTech?.icon;
+                                return (
+                                    <button
+                                        key={iconName}
+                                        onClick={() => showTechModal === 'add' ? setTechData({ ...techData, icon: iconName }) : setTargetTech({ ...targetTech, icon: iconName })}
+                                        className={`p-2 rounded flex items-center justify-center transition-all ${currentIcon === iconName ? 'bg-blue-600 text-white' : 'hover:bg-white text-zinc-400'}`}
+                                    >
+                                        <Icon size={16} />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-wide mb-1.5 block">텍스트 색상 클래스</label>
+                            <input
+                                type="text"
+                                value={showTechModal === 'add' ? techData.color : targetTech?.color || ''}
+                                onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, color: e.target.value }) : setTargetTech({ ...targetTech, color: e.target.value })}
+                                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded focus:ring-1 focus:ring-blue-500 outline-none transition-all text-xs font-medium"
+                                placeholder="text-blue-600"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-wide mb-1.5 block">배경 색상 클래스</label>
+                            <input
+                                type="text"
+                                value={showTechModal === 'add' ? techData.bg : targetTech?.bg || ''}
+                                onChange={(e) => showTechModal === 'add' ? setTechData({ ...techData, bg: e.target.value }) : setTargetTech({ ...targetTech, bg: e.target.value })}
+                                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded focus:ring-1 focus:ring-blue-500 outline-none transition-all text-xs font-medium"
+                                placeholder="bg-blue-50"
+                            />
+                        </div>
+                    </div>
                 </div>
-            )}
+            </CompactDialog>
         </div>
     );
 };
